@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LRU Cache Visualization</title>
+    <style>
+      body {
+        font-family: "Monaco", "Courier New", monospace;
+        background: linear-gradient(135deg, #1e3c72, #2a5298);
+        color: white;
+        margin: 0;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        color: #00ff88;
+        text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        margin-bottom: 30px;
+      }
+
+      .controls {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .input-group {
+        margin: 10px;
+      }
+
+      input[type="text"] {
+        padding: 10px 15px;
+        font-size: 16px;
+        border: 2px solid #00ff88;
+        border-radius: 25px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        backdrop-filter: blur(10px);
+        width: 200px;
+      }
+
+      input[type="text"]::placeholder {
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background: linear-gradient(45deg, #00ff88, #00cc6a);
+        border: none;
+        border-radius: 25px;
+        color: white;
+        cursor: pointer;
+        margin: 5px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+      }
+
+      .structures {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+      }
+
+      .structure {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .structure h2 {
+        color: #00ff88;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .hash-table {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .hash-entry {
+        background: rgba(255, 107, 107, 0.2);
+        border: 2px solid #ff6b6b;
+        border-radius: 10px;
+        padding: 10px;
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .hash-entry.accessing {
+        background: rgba(255, 235, 59, 0.3);
+        border-color: #ffeb3b;
+        transform: scale(1.05);
+        box-shadow: 0 0 15px rgba(255, 235, 59, 0.5);
+      }
+
+      .queue-container {
+        position: relative;
+        padding: 20px;
+      }
+
+      .queue {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin: 20px 0;
+      }
+
+      .node {
+        background: rgba(76, 175, 80, 0.2);
+        border: 2px solid #4caf50;
+        border-radius: 10px;
+        padding: 15px 20px;
+        position: relative;
+        transition: all 0.3s ease;
+        min-width: 80px;
+        text-align: center;
+      }
+
+      .node.sentinel {
+        background: rgba(158, 158, 158, 0.2);
+        border-color: #9e9e9e;
+        font-size: 12px;
+      }
+
+      .node.most-recent {
+        background: rgba(0, 255, 136, 0.3);
+        border-color: #00ff88;
+        box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+      }
+
+      .node.least-recent {
+        background: rgba(244, 67, 54, 0.3);
+        border-color: #f44336;
+      }
+
+      .node.accessing {
+        background: rgba(255, 235, 59, 0.3);
+        border-color: #ffeb3b;
+        transform: scale(1.1);
+        box-shadow: 0 0 20px rgba(255, 235, 59, 0.7);
+      }
+
+      .arrow {
+        color: #00ff88;
+        font-size: 20px;
+        font-weight: bold;
+      }
+
+      .operation-log {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        padding: 20px;
+        height: 200px;
+        overflow-y: auto;
+      }
+
+      .operation-log h3 {
+        color: #00ff88;
+        margin-top: 0;
+      }
+
+      .log-entry {
+        margin: 5px 0;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+      }
+
+      .log-entry.hit {
+        background: rgba(76, 175, 80, 0.2);
+        border-left: 3px solid #4caf50;
+      }
+
+      .log-entry.miss {
+        background: rgba(255, 152, 0, 0.2);
+        border-left: 3px solid #ff9800;
+      }
+
+      .log-entry.evict {
+        background: rgba(244, 67, 54, 0.2);
+        border-left: 3px solid #f44336;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      .stat {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #00ff88;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+
+      .explanation {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 20px;
+        margin-top: 20px;
+        border-left: 4px solid #00ff88;
+      }
+
+      .explanation h3 {
+        color: #00ff88;
+        margin-top: 0;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .pulsing {
+        animation: pulse 0.5s ease-in-out;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>LRU Cache</h1>
+
+      <div class="controls">
+        <div class="input-group">
+          <input
+            type="text"
+            id="keyInput"
+            placeholder="Enter a key (e.g., 'apple')"
+          />
+          <button onclick="accessKey()">Access Key</button>
+          <button onclick="runDemo()">Run Demo</button>
+          <button onclick="clearCache()">Clear Cache</button>
+        </div>
+      </div>
+
+      <div class="structures">
+        <div class="structure">
+          <h2>Hash Map (O(1) Lookup)</h2>
+          <div class="hash-table" id="hashTable"></div>
+        </div>
+
+        <div class="structure">
+          <h2>🔗 Doubly-Linked Queue (O(1) Reordering)</h2>
+          <div class="queue-container">
+            <div style="text-align: center; margin-bottom: 10px">
+              <span style="color: #00ff88">MOST RECENT ←→</span>
+              <span style="color: #f44336">←→ LEAST RECENT</span>
+            </div>
+            <div class="queue" id="queue"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="operation-log">
+        <h3>Operation Log</h3>
+        <div id="logContainer"></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="cacheSize">0</div>
+          <div class="stat-label">Cache Size</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="hitCount">0</div>
+          <div class="stat-label">Cache Hits</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="missCount">0</div>
+          <div class="stat-label">Cache Misses</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="evictions">0</div>
+          <div class="stat-label">Evictions</div>
+        </div>
+      </div>
+
+      <div class="explanation">
+        <h3>Why We Need All Three Data Structures:</h3>
+        <p>
+          <strong>Node:</strong> each piece of data needs previous/next pointers
+          for the doubly-linked list
+        </p>
+        <p>
+          <strong>Hash Map:</strong> lightning-fast lookups! without it, we'd
+          have to search through the entire queue O(n) to find our data
+        </p>
+        <p>
+          <strong>Queue (Doubly-Linked List):</strong> maintains the access
+          order! we can instantly move any node to the front or remove from
+          anywhere in O(1) time
+        </p>
+        <p>
+          <strong>Together:</strong> hash finds the node instantly, queue lets
+          us reorder instantly. that's how we achieve O(1) for all operations!
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const CACHE_SIZE = 4;
+      let cache = new Map();
+      let queue = [];
+      let hitCount = 0;
+      let missCount = 0;
+      let evictions = 0;
+
+      function log(message, type = "info") {
+        const logContainer = document.getElementById("logContainer");
+        const entry = document.createElement("div");
+        entry.className = `log-entry ${type}`;
+        entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+        logContainer.insertBefore(entry, logContainer.firstChild);
+
+        while (logContainer.children.length > 10) {
+          logContainer.removeChild(logContainer.lastChild);
+        }
+      }
+
+      function updateStats() {
+        document.getElementById("cacheSize").textContent = queue.length;
+        document.getElementById("hitCount").textContent = hitCount;
+        document.getElementById("missCount").textContent = missCount;
+        document.getElementById("evictions").textContent = evictions;
+      }
+
+      function visualizeHash() {
+        const hashTable = document.getElementById("hashTable");
+        hashTable.innerHTML = "";
+
+        for (let [key, index] of cache.entries()) {
+          const entry = document.createElement("div");
+          entry.className = "hash-entry";
+          entry.innerHTML = `
+                    <strong>${key}</strong><br>
+                    <small>→ Node[${index}]</small>
+                `;
+          hashTable.appendChild(entry);
+        }
+      }
+
+      function visualizeQueue() {
+        const queueContainer = document.getElementById("queue");
+        queueContainer.innerHTML = "";
+
+        const head = document.createElement("div");
+        head.className = "node sentinel";
+        head.textContent = "HEAD";
+        queueContainer.appendChild(head);
+
+        if (queue.length > 0) {
+          const arrow1 = document.createElement("div");
+          arrow1.className = "arrow";
+          arrow1.textContent = "↔";
+          queueContainer.appendChild(arrow1);
+        }
+
+        queue.forEach((key, index) => {
+          const node = document.createElement("div");
+          node.className = "node";
+          node.textContent = key;
+
+          if (index === 0) {
+            node.classList.add("most-recent");
+          } else if (index === queue.length - 1) {
+            node.classList.add("least-recent");
+          }
+
+          queueContainer.appendChild(node);
+
+          if (index < queue.length - 1) {
+            const arrow = document.createElement("div");
+            arrow.className = "arrow";
+            arrow.textContent = "↔";
+            queueContainer.appendChild(arrow);
+          }
+        });
+
+        if (queue.length > 0) {
+          const arrow2 = document.createElement("div");
+          arrow2.className = "arrow";
+          arrow2.textContent = "↔";
+          queueContainer.appendChild(arrow2);
+        }
+
+        const tail = document.createElement("div");
+        tail.className = "node sentinel";
+        tail.textContent = "TAIL";
+        queueContainer.appendChild(tail);
+      }
+
+      function highlightAccess(key) {
+        const hashEntries = document.querySelectorAll(".hash-entry");
+        hashEntries.forEach((entry) => {
+          if (entry.textContent.includes(key)) {
+            entry.classList.add("accessing");
+            setTimeout(() => entry.classList.remove("accessing"), 1000);
+          }
+        });
+
+        const nodes = document.querySelectorAll(".node:not(.sentinel)");
+        nodes.forEach((node) => {
+          if (node.textContent === key) {
+            node.classList.add("accessing");
+            setTimeout(() => node.classList.remove("accessing"), 1000);
+          }
+        });
+      }
+
+      function accessKey(key = null) {
+        if (!key) {
+          key = document.getElementById("keyInput").value.trim();
+          if (!key) return;
+          document.getElementById("keyInput").value = "";
+        }
+
+        highlightAccess(key);
+
+        if (cache.has(key)) {
+          hitCount++;
+          const currentIndex = queue.indexOf(key);
+          queue.splice(currentIndex, 1);
+          queue.unshift(key);
+
+          updateHashIndices();
+
+          log(`🎯 CACHE HIT: "${key}" moved to front (most recent)`, "hit");
+        } else {
+          missCount++;
+          queue.unshift(key);
+
+          if (queue.length > CACHE_SIZE) {
+            const evicted = queue.pop();
+            cache.delete(evicted);
+            evictions++;
+            log(`❌ EVICTED: "${evicted}" (was least recent)`, "evict");
+          }
+
+          log(`➕ CACHE MISS: Added "${key}" as most recent`, "miss");
+        }
+
+        updateHashIndices();
+
+        visualizeHash();
+        visualizeQueue();
+        updateStats();
+      }
+
+      function updateHashIndices() {
+        cache.clear();
+        queue.forEach((key, index) => {
+          cache.set(key, index);
+        });
+      }
+
+      function runDemo() {
+        const demoKeys = [
+          "🍎 Apple",
+          "🍌 Banana",
+          "🍊 Orange",
+          "🍇 Grape",
+          "🥝 Kiwi",
+          "🍎 Apple",
+          "🍓 Berry",
+        ];
+        let index = 0;
+
+        const interval = setInterval(() => {
+          if (index >= demoKeys.length) {
+            clearInterval(interval);
+            return;
+          }
+          accessKey(demoKeys[index]);
+          index++;
+        }, 1500);
+      }
+
+      function clearCache() {
+        cache.clear();
+        queue = [];
+        hitCount = 0;
+        missCount = 0;
+        evictions = 0;
+
+        visualizeHash();
+        visualizeQueue();
+        updateStats();
+
+        document.getElementById("logContainer").innerHTML = "";
+        log("🧹 Cache cleared!", "info");
+      }
+
+      document
+        .getElementById("keyInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            accessKey();
+          }
+        });
+
+      visualizeHash();
+      visualizeQueue();
+      updateStats();
+      log("🚀 LRU Cache initialized with capacity " + CACHE_SIZE, "info");
+    </script>
+  </body>
+</html>
